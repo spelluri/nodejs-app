@@ -1,39 +1,33 @@
 pipeline {
-    agent { label "dev-server"}
-    
+    agent any
     stages {
-        
-        stage("code"){
-            steps{
-                git url: "https://github.com/LondheShubham153/node-todo-cicd.git", branch: "master"
-                echo 'bhaiyya code clone ho gaya'
+        stage("Clone") {
+            steps {
+                echo "Cloning Git Code"
+                git url:"https://github.com/spelluri/nodejs-app.git",branch:"main"
             }
         }
-        stage("build and test"){
-            steps{
-                sh "docker build -t node-app-test-new ."
-                echo 'code build bhi ho gaya'
+        stage("build") {
+            steps {
+                echo "docker build image"
+                sh "docker build -t my-nodejs-app ."
             }
         }
-        stage("scan image"){
-            steps{
-                echo 'image scanning ho gayi'
-            }
-        }
-        stage("push"){
-            steps{
-                withCredentials([usernamePassword(credentialsId:"dockerHub",passwordVariable:"dockerHubPass",usernameVariable:"dockerHubUser")]){
-                sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPass}"
-                sh "docker tag node-app-test-new:latest ${env.dockerHubUser}/node-app-test-new:latest"
-                sh "docker push ${env.dockerHubUser}/node-app-test-new:latest"
-                echo 'image push ho gaya'
+        stage("login and push") {
+            steps {
+                echo "dockerhub login and pushing docker image to dockerhub"
+                withCredentials([usernamePassword(credentialsId:"dockerhub",passwordVariable:"dockerhubPass",usernameVariable:"dockerhubUser")]){
+                    echo "logging in to dockerhub"
+                    sh "docker tag my-nodejs-app ${env.dockerhubUser}/my-nodejs-app:$BUILD_NUMBER"
+                    sh "docker login -u ${env.dockerhubUser} -p ${env.dockerhubPass}"
+                    sh "docker push ${env.dockerhubUser}/my-nodejs-app:$BUILD_NUMBER"
                 }
             }
         }
-        stage("deploy"){
-            steps{
+        stage("deploy") {
+            steps {
+                echo "deploying container"
                 sh "docker-compose down && docker-compose up -d"
-                echo 'deployment ho gayi'
             }
         }
     }
